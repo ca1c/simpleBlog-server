@@ -21,13 +21,15 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(session({
-    secret: 'keyboard cat',
+    secret: process.env.SECRET_KEY,
     resave: false,
     saveUninitialized: true,
     cookie: { secure: true }
 }))
 app.use(passport.initialize());
 app.use(passport.session());
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 // User.authenticate is located in /schemas/user.js in the passport plugin
 passport.use(new LocalStrategy(User.authenticate()));
