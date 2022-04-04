@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
+const MongoDBStore = require('connect-mongodb-session')(session);
 const app = express();
 
 require('dotenv').config();
@@ -17,26 +17,27 @@ mongoose.connect(`${process.env.DB_URL}${process.env.DB_NAME}`);
 //schemas
 const User = require('./schemas/user.js');
 
+var store = require('./routes/util/mongostore.js');
+
+store.on('error', function(error) {
+    console.log(error);
+})
+
+
+
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(cookieParser());
 app.use(session({
     secret: process.env.SECRET_KEY,
-    resave: false,
+    cookie: {
+        maxAge: 1000 * 60 * 5 // 5 min (just for dev purposes),
+    },
+    store: store,
+    resave: true,
     saveUninitialized: true,
-    cookie: { secure: true }
 }))
-app.use(passport.initialize());
-app.use(passport.session());
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
-
-// User.authenticate is located in /schemas/user.js in the passport plugin
-passport.use(new LocalStrategy(User.authenticate()));
-
-app.get('/', (req, res) => {
-    res.send('test');
-});
 
 app.use('/api', api);
 

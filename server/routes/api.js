@@ -2,12 +2,16 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const session = require('express-session');
+const MongoDBStore = require('connect-mongodb-session')(session);
+const saltRounds = 10;
+
 require('dotenv').config();
 
 //Schemas
 const User = require('../schemas/user.js');
-const passport = require('passport');
+
+const store = require('./util/mongostore.js');
 
 // no need for body parser here because exporting router to main file
 // so req.body is perfectly fine
@@ -16,31 +20,63 @@ const SECRET_KEY = process.env.SECRET_KEY;
 
 router.post('/register', (req, res) => {
     const { username, email, password } = req.body;
-    if(!username || !email || !password) return 'Error: Missing data';
-    const Users = new User({email, username});
-    User.register(Users, password, function(err, user) {
-        if(err) {
-            res.json({success: false, message: "Account could not be registered. Error: ", err});
-        } else {
-            res.json({success: true, message: "Account has been created successfully"});
-        }
+    bcrypt.hash(password, saltRounds, function(err, hash) {
+        User.findOne({ username: username }, function(err, user) {
+            // user will have a value of null if no user is found
+            if(user) {
+                res.send({ success: false, message: "Error registering account"});
+                return;
+            }
+            else {
+                const user = new User({
+                    username,
+                    email,
+                    password: hash
+                });
+        
+                user.save().then(() => {
+                    req.session.user = username;
+                    res.send({user: username});
+                    console.log('new user registered');
+                    console.log(req.session);
+                });
+            }
+        });
+
+
     })
 })
 
 router.post('/login', (req, res) => {
     const {username, password} = req.body;
-    console.log(username, password);
-    passport.authenticate('local', function(err, user, info) {
-            req.login(user, function(err) {
-                if(err) {
-                    res.json({success: false, message: err})
-                    console.log(err);
-                } else {
-                    const token =  jwt.sign({userId : user._id, username:user.username}, 'keyboard cat', {expiresIn: '24h'})
-                    res.json({success:true, message:"Authentication successful", token: token });
+    User.findOne({ username : username }, function(err, user) {
+        if(!user) {
+            res.send({ success: false, message: "Username or password incorrect" })
+            return;
+        }
+        else {
+            bcrypt.compare(password, user.password, function(err, result) {
+                if(result) {
+                    req.session.user = username;
+                    res.send({ success: true, message: "Successfully logged in", sessID: req.session.id });
+                }
+                else {
+                    res.send({ success: false, message: "Username or password incorrect" })
                 }
             })
-    })(req, res);
+        }
+    })
+})
+
+router.post('/userSession', (req, res) => {
+    store.get(req.body.sessID, function(error, session) {
+        if (error) {
+            res.status(500).send(error);
+            return;
+          }
+    })
+    
+    res.send({success: true, message: "authenticated"});
 })
 
 module.exports = router;
