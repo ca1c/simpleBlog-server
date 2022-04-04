@@ -24,7 +24,7 @@ router.post('/register', (req, res) => {
         User.findOne({ username: username }, function(err, user) {
             // user will have a value of null if no user is found
             if(user) {
-                res.send({ success: false, message: "Error registering account"});
+                res.send({ success: false, message: "Error Registering Account", sessID: req.session.id });
                 return;
             }
             else {
@@ -36,7 +36,8 @@ router.post('/register', (req, res) => {
         
                 user.save().then(() => {
                     req.session.user = username;
-                    res.send({user: username});
+                    req.session.save();
+                    res.send({ success: true, message: "Account Successfully Registered"});
                     console.log('new user registered');
                     console.log(req.session);
                 });
@@ -51,32 +52,32 @@ router.post('/login', (req, res) => {
     const {username, password} = req.body;
     User.findOne({ username : username }, function(err, user) {
         if(!user) {
-            res.send({ success: false, message: "Username or password incorrect" })
+            res.send({ success: false, message: "Username or Password Incorrect" })
             return;
         }
         else {
             bcrypt.compare(password, user.password, function(err, result) {
                 if(result) {
                     req.session.user = username;
-                    res.send({ success: true, message: "Successfully logged in", sessID: req.session.id });
+                    req.session.save();
+                    res.send({ success: true, message: "Successfully Logged In", sessID: req.session.id });
                 }
                 else {
-                    res.send({ success: false, message: "Username or password incorrect" })
+                    res.send({ success: false, message: "Username or Password Incorrect" })
                 }
             })
         }
     })
 })
 
-router.post('/userSession', (req, res) => {
-    store.get(req.body.sessID, function(error, session) {
+router.get('/authenticate', (req, res) => {
+    store.get(req.query.sessId, function(error, session) {
         if (error) {
             res.status(500).send(error);
             return;
-          }
+        }
+        res.send({success: true, message: "authenticated", username: session.user});
     })
-    
-    res.send({success: true, message: "authenticated"});
 })
 
 module.exports = router;
