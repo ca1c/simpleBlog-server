@@ -37,7 +37,7 @@ router.post('/register', (req, res) => {
                 user.save().then(() => {
                     req.session.user = username;
                     req.session.save();
-                    res.send({ success: true, message: "Account Successfully Registered"});
+                    res.send({ success: true, message: "Account Successfully Registered", sessID: req.session.id});
                     console.log('new user registered');
                     console.log(req.session);
                 });
