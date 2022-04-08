@@ -24,8 +24,7 @@ router.post('/register', (req, res) => {
         User.findOne({ username: username }, function(err, user) {
             // user will have a value of null if no user is found
             if(user) {
-                res.send({ success: false, message: "Error Registering Account", sessID: req.session.id });
-                return;
+                res.send({ success: false, message: "Error Registering Account"});
             }
             else {
                 const user = new User({
