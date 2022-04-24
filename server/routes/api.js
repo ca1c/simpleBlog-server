@@ -70,12 +70,18 @@ router.post('/login', (req, res) => {
 })
 
 router.get('/authenticate', (req, res) => {
+    console.log('ran');
     store.get(req.query.sessId, function(error, session) {
         if (error) {
-            res.status(500).send(error);
+            res.send({success: false, message: "not authenticated"});
             return;
         }
-        res.send({success: true, message: "authenticated", username: session.user});
+        if(session) {
+            res.send({success: true, message: "authenticated", username: session.user});
+        }
+        else {
+            res.send({success: false, message: "not authenticated"});
+        }
     })
 })
 
