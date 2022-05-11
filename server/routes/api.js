@@ -69,6 +69,18 @@ router.post('/login', (req, res) => {
     })
 })
 
+router.post('/logout', (req, res) => {
+    const {sessId} = req.body;
+    store.destroy(sessId, (error) => {
+        if(error) {
+            res.send({ success: false, message: "failed to destroy session" });
+        }
+
+        console.log(`user destroyed session ${sessId}`);
+        res.send({ success: true, message: "session destroyed successfully" });
+    });
+})
+
 router.get('/authenticate', (req, res) => {
     console.log('ran');
     store.get(req.query.sessId, function(error, session) {
