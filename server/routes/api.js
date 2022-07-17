@@ -10,6 +10,7 @@ require('dotenv').config();
 
 //Schemas
 const User = require('../schemas/user.js');
+const BlogPost = require('../schemas/blogPost.js');
 
 const store = require('./util/mongostore.js');
 
@@ -51,8 +52,7 @@ router.post('/login', (req, res) => {
     const {username, password} = req.body;
     User.findOne({ username : username }, function(err, user) {
         if(!user) {
-            res.send({ success: false, message: "Username or Password Incorrect" })
-            return;
+            res.send({ success: false, message: "Username or Password Incorrect" });
         }
         else {
             bcrypt.compare(password, user.password, function(err, result) {
@@ -82,7 +82,6 @@ router.post('/logout', (req, res) => {
 })
 
 router.get('/authenticate', (req, res) => {
-    console.log('ran');
     store.get(req.query.sessId, function(error, session) {
         if (error) {
             res.send({success: false, message: "not authenticated"});
@@ -93,6 +92,45 @@ router.get('/authenticate', (req, res) => {
         }
         else {
             res.send({success: false, message: "not authenticated"});
+        }
+    })
+})
+
+router.post('/createPost', (req, res) => {
+    const { sessId, title, subheading, bodyText  } = req.body;
+
+    if(!sessId || !title || !subheading || !bodyText) {
+        res.send({success: false, message: "incomplete form"});
+    }
+
+    store.get(sessId, function(error, session) {
+        if(error) {
+            
+            res.send({success: false, message: "not authenticated"});
+        }
+
+        if(session) {
+            User.findOne({username : session.user}, function(err, user) {
+                if(!user) {
+                    
+                    res.send({success: false, message: "not authenticated"});
+                }
+                else {
+                    const blogPost = new BlogPost({
+                        username: user.username,
+                        title: title,
+                        subheading: subheading,
+                        bodyText: bodyText,
+                    })
+                    // save blog post and on callback add the id of this post to the user that created it
+                    blogPost.save().then(() => {
+                        console.log('blog post saved');
+                    });
+                }
+            })
+        }
+        else {
+            res.send({success: false, message: "not authenticated"})
         }
     })
 })

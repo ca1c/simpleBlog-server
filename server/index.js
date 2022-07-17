@@ -12,7 +12,9 @@ const PORT = 8080 || process.env.PORT;
 
 const api = require('./routes/api.js');
 
-mongoose.connect(`${process.env.DB_URL}${process.env.DB_NAME}`);
+const CONNECTION = `mongodb://localhost:27017/${process.env.DB_NAME}`;
+
+mongoose.connect(CONNECTION);
 
 //schemas
 const User = require('./schemas/user.js');
