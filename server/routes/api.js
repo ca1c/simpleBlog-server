@@ -31,7 +31,8 @@ router.post('/register', (req, res) => {
                 const user = new User({
                     username,
                     email,
-                    password: hash
+                    password: hash,
+                    posts: [],
                 });
         
                 user.save().then(() => {
@@ -112,7 +113,6 @@ router.post('/createPost', (req, res) => {
         if(session) {
             User.findOne({username : session.user}, function(err, user) {
                 if(!user) {
-                    
                     res.send({success: false, message: "not authenticated"});
                 }
                 else {
@@ -123,8 +123,12 @@ router.post('/createPost', (req, res) => {
                         bodyText: bodyText,
                     })
                     // save blog post and on callback add the id of this post to the user that created it
-                    blogPost.save().then(() => {
-                        console.log('blog post saved');
+                    blogPost.save().then((thisPost) => {
+                        let posts = [...user.posts].concat(thisPost._id);
+                        User.findOneAndUpdate({ username : user.username }, { 'posts': posts }, { upsert: false },  function(err, doc) {
+                            console.log("blog post saved and user updated");
+                            res.send({ success: true, message: "blog post saved" });
+                        })
                     });
                 }
             })

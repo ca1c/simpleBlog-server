@@ -7,6 +7,7 @@ const UserSchema = new Schema({
     email: { type: String, required: true, unique: true},
     username: {type: String, required: true, unique: true},
     password: {type: String, required: true, unique: true},
+    posts: {type: [String], required: true},
     dateCreated: {type: Date, default: Date.now()},
 });
 
