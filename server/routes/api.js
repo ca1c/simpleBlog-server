@@ -97,6 +97,7 @@ router.get('/authenticate', (req, res) => {
     })
 })
 
+// C
 router.post('/createPost', (req, res) => {
     const { sessId, title, subheading, bodyText  } = req.body;
 
@@ -139,6 +140,7 @@ router.post('/createPost', (req, res) => {
     })
 })
 
+// R
 router.get('/getPost', (req, res) => {
     let pq = req.query.post;
     BlogPost.findOne({ _id: pq }, function(err, post) {
@@ -147,6 +149,26 @@ router.get('/getPost', (req, res) => {
         }
         else {
             res.send({ success: true, message: "post found", title: post.title, subheading: post.subheading, bodyText: post.bodyText });
+        }
+    })
+})
+
+// U
+router.post('/editPost', (req, res) => {
+    const { username, pid, title, subheading, bodyText } = req.body;
+    User.findOne({ username : username }, function(err, user) {
+        if(!user || !user.posts.includes(pid)) {
+            console.log('ran', user, pid);
+            res.send({ success: false, message: "user incorrect" });
+        }
+        else {
+            BlogPost.findOneAndUpdate({ _id: pid }, {title: title, subheading: subheading, bodyText: bodyText }, function(err, post) {
+                if(err) {
+                    res.send({ success: false, message: err })
+                }
+                console.log("post updated and saved");
+                res.send({ success: true, message: "blog post updated and saved"});
+            })
         }
     })
 })
