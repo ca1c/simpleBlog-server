@@ -140,24 +140,13 @@ router.post('/createPost', (req, res) => {
 })
 
 router.get('/getPost', (req, res) => {
-    let uq = req.query.user;
     let pq = req.query.post;
-
-    console.log(uq);
-    console.log(pq);
-    User.findOne({ username: uq }, function(err, user) {
-        if(!user) {
-            res.send({success: false, message: "user not found"});
+    BlogPost.findOne({ _id: pq }, function(err, post) {
+        if(!post) {
+            res.send({ success: false, message: "post not found" });
         }
         else {
-            BlogPost.findOne({ _id: pq }, function(err, post) {
-                if(!post || post.username !== user.username) {
-                    res.send({ success: false, message: "post not found" });
-                }
-                else {
-                    res.send({ success: true, message: "post found", title: post.title, subheading: post.subheading, bodyText: post.bodyText });
-                }
-            })
+            res.send({ success: true, message: "post found", title: post.title, subheading: post.subheading, bodyText: post.bodyText });
         }
     })
 })
