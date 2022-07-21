@@ -97,6 +97,39 @@ router.get('/authenticate', (req, res) => {
     })
 })
 
+router.get('/getUserData', (req, res) => {
+    const username = req.query.username;
+    User.findOne({ username : username }, function(err, user) {
+        if(!user) {
+            res.send({ success: false, message: "user not found" });
+        }
+        else if(err) {
+            res.send({ success: false, message: err });
+        }
+        else {
+            if(user.posts.length > 0) {
+                BlogPost.find({
+                    '_id': { $in: user.posts }
+                }, function(err, posts) {
+                    if(err) {
+                        res.send({success: false, message: err});
+                    }
+                    else {
+                        res.send({ 
+                            success: true, 
+                            message: "user data found", 
+                            data: {
+                                username: user.username,
+                                posts: posts ? posts : [],
+                            } 
+                        })
+                    }
+                })
+            }
+        }
+    })
+})
+
 // C
 router.post('/createPost', (req, res) => {
     const { sessId, title, subheading, bodyText  } = req.body;
@@ -142,7 +175,7 @@ router.post('/createPost', (req, res) => {
 
 // R
 router.get('/getPost', (req, res) => {
-    let pq = req.query.post;
+    const pq = req.query.post;
     BlogPost.findOne({ _id: pq }, function(err, post) {
         if(!post) {
             res.send({ success: false, message: "post not found" });
