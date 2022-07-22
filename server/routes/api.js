@@ -206,4 +206,42 @@ router.post('/editPost', (req, res) => {
     })
 })
 
+// D
+router.delete('/deletePost', (req, res) => {
+    const { user, pid } = req.body;
+
+    User.findOne({ username : user }, (err, user) => {
+        if(err) {
+            res.send({ success: false, message: err });
+        }
+
+        if(!user) {
+            res.send({ success: false, message: "user not found" });
+        }
+        else if(!user.posts.includes(pid)) {
+            res.send({ success: false, message: "user does not own this post" });
+        }
+        else {
+            BlogPost.findOneAndDelete({ _id: pid }, function(err, post) {
+                if(err) {
+                    res.send({ success: false, message: err });
+                }
+                else {
+                    let newPosts = user.posts
+                    let postIdIndex = newPosts.indexOf(pid);
+                    newPosts.splice(postIdIndex, 1);
+                    User.findOneAndUpdate({ username: user.username }, {posts: newPosts}, function(err, u) {
+                        if(err) {
+                            res.send({ success: false, message: err });
+                        } 
+                        else {
+                            res.send({ success: true, message: `post ${post._id} deleted and user ${u.username} updated`})
+                        }
+                    })
+                }
+            })
+        }
+    })
+})
+
 module.exports = router;
