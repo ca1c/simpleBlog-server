@@ -13,6 +13,7 @@ const User = require('../schemas/user.js');
 const BlogPost = require('../schemas/blogPost.js');
 
 const store = require('./util/mongostore.js');
+const { Session } = require('express-session');
 
 // no need for body parser here because exporting router to main file
 // so req.body is perfectly fine
@@ -140,13 +141,15 @@ router.post('/createPost', (req, res) => {
 
     store.get(sessId, function(error, session) {
         if(error) {
-            
-            res.send({success: false, message: "not authenticated"});
+            res.send({success: false, message: error});
         }
-
-        if(session) {
+        if(!session) {
+            res.send({ success: false, message: "user not found" });
+        }
+        else {
             User.findOne({username : session.user}, function(err, user) {
                 if(!user) {
+                    console.log('ran');
                     res.send({success: false, message: "not authenticated"});
                 }
                 else {
@@ -167,9 +170,6 @@ router.post('/createPost', (req, res) => {
                 }
             })
         }
-        else {
-            res.send({success: false, message: "not authenticated"})
-        }
     })
 })
 
@@ -188,54 +188,74 @@ router.get('/getPost', (req, res) => {
 
 // U
 router.post('/editPost', (req, res) => {
-    const { username, pid, title, subheading, bodyText } = req.body;
-    User.findOne({ username : username }, function(err, user) {
-        if(!user || !user.posts.includes(pid)) {
-            console.log('ran', user, pid);
-            res.send({ success: false, message: "user incorrect" });
+    const { sessId, pid, title, subheading, bodyText } = req.body;
+    store.get(sessId, function(error, session) {
+        if(error) {
+            res.send({success: false, message: "error"})
+        }
+
+        if(!session) {
+            res.send({success: false, message: "user not found"});
         }
         else {
-            BlogPost.findOneAndUpdate({ _id: pid }, {title: title, subheading: subheading, bodyText: bodyText }, function(err, post) {
-                if(err) {
-                    res.send({ success: false, message: err })
+            User.findOne({ username : session.user }, function(err, user) {
+                if(err) { res.send({ success: false, message: err }) }
+
+                if(!user || !user.posts.includes(pid)) {
+                    res.send({ success: false, message: "user does not own this post" });
                 }
-                console.log("post updated and saved");
-                res.send({ success: true, message: "blog post updated and saved"});
+                else {
+                    BlogPost.findOneAndUpdate({ _id: pid }, {title: title, subheading: subheading, bodyText: bodyText }, function(err, post) {
+                        if(err) {
+                            res.send({ success: false, message: err })
+                        }
+                        console.log("post updated and saved");
+                        res.send({ success: true, message: "blog post updated and saved"});
+                    })
+                }
             })
         }
     })
+
 })
 
 // D
 router.delete('/deletePost', (req, res) => {
-    const { user, pid } = req.body;
+    const { sessId, pid } = req.body;
 
-    User.findOne({ username : user }, (err, user) => {
-        if(err) {
-            res.send({ success: false, message: err });
-        }
-
-        if(!user) {
-            res.send({ success: false, message: "user not found" });
-        }
-        else if(!user.posts.includes(pid)) {
-            res.send({ success: false, message: "user does not own this post" });
+    store.get(sessId, function(error, session) {
+        if(error) {
+            res.send({success: false, message: error});
         }
         else {
-            BlogPost.findOneAndDelete({ _id: pid }, function(err, post) {
+            User.findOne({ username : session.user }, (err, user) => {
                 if(err) {
                     res.send({ success: false, message: err });
                 }
+        
+                if(!user) {
+                    res.send({ success: false, message: "user not found" });
+                }
+                else if(!user.posts.includes(pid)) {
+                    res.send({ success: false, message: "user does not own this post" });
+                }
                 else {
-                    let newPosts = user.posts
-                    let postIdIndex = newPosts.indexOf(pid);
-                    newPosts.splice(postIdIndex, 1);
-                    User.findOneAndUpdate({ username: user.username }, {posts: newPosts}, function(err, u) {
+                    BlogPost.findOneAndDelete({ _id: pid }, function(err, post) {
                         if(err) {
                             res.send({ success: false, message: err });
-                        } 
+                        }
                         else {
-                            res.send({ success: true, message: `post ${post._id} deleted and user ${u.username} updated`})
+                            let newPosts = user.posts
+                            let postIdIndex = newPosts.indexOf(pid);
+                            newPosts.splice(postIdIndex, 1);
+                            User.findOneAndUpdate({ username: user.username }, {posts: newPosts}, function(err, u) {
+                                if(err) {
+                                    res.send({ success: false, message: err });
+                                } 
+                                else {
+                                    res.send({ success: true, message: `post ${post._id} deleted and user ${u.username} updated`})
+                                }
+                            })
                         }
                     })
                 }
